@@ -22,14 +22,16 @@ module.exports = (logSources, printer) => {
   while (!logMinHeap.isEmpty()) {
     // Print next earlist log entry.
     const { entry, sourceIndex } = logMinHeap.getEarliestLogEntry();
+
     printer.print(entry);
 
-    // Adds next consecutive log entry from same logSource.
-    // Maintains efficiency by preventing the log entry min-heap from becoming too large.
+    /*
+    Adds next consecutive log entry from same logSource.
+    Maintains efficiency by preventing the log entry min-heap from becoming too large.
+    */
     popLogEntry(logSources[sourceIndex], sourceIndex);
   }
 
   printer.done();
-
   return console.log('Sync sort complete.');
 };

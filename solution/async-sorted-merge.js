@@ -7,7 +7,11 @@ const LogMinHeap = require('../lib/log-min-heap');
 module.exports = async (logSources, printer) => {
   const logMinHeap = new LogMinHeap();
 
-  // Define the maximum size of the min-heap.
+  /* 
+  Defines the maximum size of the min-heap. 
+  The logic automatically assumes a minimum of the number of logSources.
+  Maintains efficiency by preventing the log entry min-heap from becoming too large.
+  */
   const MAX_HEAP_SIZE = 1000000; // Adjust this value as needed.
 
   // Pop and add log entry the min-heap.
@@ -19,17 +23,17 @@ module.exports = async (logSources, printer) => {
         logMinHeap.insert({ entry: nextLogEntry, sourceIndex });
 
         // Max size must be larger than the number of log sources.
-        if (
-          MAX_HEAP_SIZE > logSources.length &&
-          logMinHeap.size() > MAX_HEAP_SIZE
-        ) {
+        if (logMinHeap.size() > MAX_HEAP_SIZE) {
           return;
         }
       }
     }
   };
 
-  // Add log entries from each logSource to min-heap until max size is reached.
+  /*
+  Add log entries from each logSource to min-heap until max size is reached. 
+  Ensures at least earliest entry from each log source is added.
+  */
   await Promise.all(
     logSources.map((logSource, index) => popLogEntriesAsync(logSource, index))
   );
