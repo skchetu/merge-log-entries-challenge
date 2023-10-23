@@ -8,7 +8,7 @@ module.exports = async (logSources, printer) => {
   const logMinHeap = new LogMinHeap();
 
   // Define the maximum size of the min-heap.
-  const MAX_HEAP_SIZE = 1000; // Adjust this value as needed.
+  const MAX_HEAP_SIZE = 1000000; // Adjust this value as needed.
 
   // Pop and add log entry the min-heap.
   const popLogEntriesAsync = async (logSource, sourceIndex) => {
