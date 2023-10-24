@@ -20,9 +20,8 @@ module.exports = (logSources, printer) => {
   logSources.map((logSource, index) => popLogEntry(logSource, index));
 
   while (!logMinHeap.isEmpty()) {
-    // Print next earlist log entry.
+    // Print the next earlist log entry.
     const { entry, sourceIndex } = logMinHeap.getEarliestLogEntry();
-
     printer.print(entry);
 
     /*
@@ -33,5 +32,6 @@ module.exports = (logSources, printer) => {
   }
 
   printer.done();
+
   return console.log('Sync sort complete.');
 };

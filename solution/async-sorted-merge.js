@@ -4,47 +4,58 @@ const LogMinHeap = require('../lib/log-min-heap');
 
 // Print all entries, across all of the *async* sources, in chronological order.
 
+/**
+ * Asynchronously yields chronological log entries from each log source
+ */
+async function* generateLogEntries(logSource, sourceIndex) {
+  while (!logSource.drained) {
+    const logEntry = await logSource.popAsync();
+
+    if (!logSource.drained) {
+      yield { logEntry, sourceIndex };
+    }
+  }
+}
+
 module.exports = async (logSources, printer) => {
   const logMinHeap = new LogMinHeap();
 
-  /* 
-  Defines the maximum size of the min-heap. 
-  The logic automatically assumes a minimum of the number of logSources.
-  Maintains efficiency by preventing the log entry min-heap from becoming too large.
-  */
-  const MAX_HEAP_SIZE = 1000000; // Adjust this value as needed.
-
-  // Pop and add log entry the min-heap.
-  const popLogEntriesAsync = async (logSource, sourceIndex) => {
-    while (!logSource.drained) {
-      const nextLogEntry = await logSource.popAsync();
-
-      if (!logSource.drained) {
-        logMinHeap.insert({ entry: nextLogEntry, sourceIndex });
-
-        // Max size must be larger than the number of log sources.
-        if (logMinHeap.size() > MAX_HEAP_SIZE) {
-          return;
-        }
-      }
-    }
-  };
-
-  /*
-  Add log entries from each logSource to min-heap until max size is reached. 
-  Ensures at least earliest entry from each log source is added.
-  */
-  await Promise.all(
-    logSources.map((logSource, index) => popLogEntriesAsync(logSource, index))
+  // Get generator for each log source
+  const logEntryGenerators = logSources.map((logSource, index) =>
+    generateLogEntries(logSource, index)
   );
 
+  // Get the earliest entry from each log entry generator.
+  const earliestLogEntries = await Promise.all(
+    logEntryGenerators.map((entryGenerator) => entryGenerator.next())
+  );
+
+  earliestLogEntries.forEach((generatedEntry) => {
+    // Load the earliest entry from each log source into the min-heap.
+    if (!generatedEntry.done) {
+      logMinHeap.insert({
+        entry: generatedEntry.value.logEntry,
+        sourceIndex: generatedEntry.value.sourceIndex,
+      });
+    }
+  });
+
   while (!logMinHeap.isEmpty()) {
-    // Print next earlist log entry.
+    // Print the next earliest log entry.
     const { entry, sourceIndex } = logMinHeap.getEarliestLogEntry();
     printer.print(entry);
 
-    // Adds log entries from same logSource to min-heap until max is reached.
-    await popLogEntriesAsync(logSources[sourceIndex], sourceIndex);
+    /*
+    Adds the next consecutive log entry from same log source.
+    Maintains efficiency by preventing the log entry min-heap from becoming too large.
+    */
+    const nextGeneratedEntry = await logEntryGenerators[sourceIndex].next();
+    if (!nextGeneratedEntry.done) {
+      logMinHeap.insert({
+        entry: nextGeneratedEntry.value.logEntry,
+        sourceIndex: nextGeneratedEntry.value.sourceIndex,
+      });
+    }
   }
 
   printer.done();
